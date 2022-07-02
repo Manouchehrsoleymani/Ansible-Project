@@ -1,0 +1,16 @@
+---
+all:
+  vars:
+    jysk_env: production
+    redis_password: !vault | 
+          $ANSIBLE_VAULT;1.1;AES256
+
+    memory: 35G
+  children:
+    redis:
+      hosts:
+
+    webservers:
+      hosts:
+
+

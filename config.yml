@@ -1,0 +1,60 @@
+---
+- name: Configure redis
+  hosts: "{{ groups.redis }}"
+
+  tasks:
+    - name: "Update redis"
+      become: true
+      apt:
+        name: redis
+        state: latest
+      notify: "Restart redis"
+
+    - name: "Update redis config"
+      become: true
+      ansible.builtin.file:
+        path: "/var/lib/redis_{{item}}"
+      template:
+        src: redis.conf.j2
+        dest: /etc/redis/redis_{{item}}.conf
+      lineinfile: 
+        dest=/etc/redis/redis_{{item}}.conf
+        regexp="{{ item.regexp }}" 
+        line="{{ item.line }}" 
+        state=present
+      with_items:
+        - { regexp: '^port\s+\d+$', line: "port {{item}}" }
+        - { regexp: '^pidfile.*pid$', line: "pidfile /var/run/redis/redis-server_{{item}}.pid" }
+        - { regexp: '^logfile.*log$', line: "logfile /var/log/redis/redis-server_{{item}}.log" }
+        - { regexp: '^dir.*redis$', line: "dir /var/lib/redis_{{item}}" }
+      loop: "{{range(starting_port, starting_port+instances)}}"
+      notify: "Restart redis"
+  handlers:
+    - name: "Restart redis"
+      become: true 
+      service:
+        name: redis
+        state: restarted
+
+- name: Add PHP redis extension
+  hosts: "{{ groups.webservers }}"
+
+  tasks:
+    - name: "Update php-pecl-redis5 to latest version"
+      become: true
+      environment:
+        HTTPS_PROXY: http://javanet:example.local:8080
+        HTTP_PROXY: http://javanet:example.local:8080
+      yum:
+        name: php74-php-pecl-redis5
+        state: latest
+        enablerepo: remi-safe
+      notify: "Restart php-fpm"
+
+  handlers:
+    - name: "Restart php-fpm"
+      become: true
+      service:
+        name: php74-php-fpm
+        state: restarted
+ 

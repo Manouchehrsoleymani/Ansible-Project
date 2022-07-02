@@ -1,0 +1,18 @@
+---
+all:
+  vars:
+    jysk_env: stage
+    redis_password: !vault | 
+
+    memory: 8G
+  children:
+    redis:
+      hosts:
+
+          vars:
+            starting_port: 6379
+            instances: 2
+
+    webservers:
+      hosts:
+
